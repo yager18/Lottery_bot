@@ -1,9 +1,11 @@
 import sqlite3
 import random
 import asyncio
+import os
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiohttp import web
 
 # --- Configuration ---
 BOT_TOKEN = '8724280923:AAF-RmLnpfee08R3XgjYn7aRWO8uh3XbgZQ'
@@ -34,7 +36,7 @@ async def start(message: types.Message):
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(text="🎟️ ትኬት ግዛ (የ1 ትኬት ዋጋ 50 ብር ነው)", callback_data="buy_ticket"))
     builder.row(types.InlineKeyboardButton(text="📊 የኔ ትኬቶች", callback_data="my_status"))
-    await message.answer("እንኳን ወደ ያገርሰው የእጣ ትኬት መግዣ ቦት በሰላም መጡ!", reply_markup=builder.as_markup())
+    await message.answer("እንኳን ወደ ያገርሰው የእጣ ትኬት መሸጫ ቦት በሰላም መጡ!", reply_markup=builder.as_markup())
 
 @dp.callback_query(F.data == "buy_ticket")
 async def buy(callback: types.CallbackQuery):
@@ -48,7 +50,6 @@ async def forward_receipt(message: types.Message):
     await bot.send_photo(ADMIN_ID, message.photo[-1].file_id, caption=f"አዲስ ደረሰኝ ከ: {message.from_user.full_name}", reply_markup=builder.as_markup())
     await message.reply("ደረሰኝዎ ደርሷል!")
 
-# --- Admin Action ---
 @dp.callback_query(F.data.startswith("ok_"))
 async def approve(callback: types.CallbackQuery):
     try:
@@ -65,7 +66,6 @@ async def approve(callback: types.CallbackQuery):
     except Exception as e:
         await callback.answer(f"ስህተት: {e}")
 
-# --- Check Status ---
 @dp.callback_query(F.data == "my_status")
 async def check_status(callback: types.CallbackQuery):
     conn = sqlite3.connect(DB_PATH)
@@ -79,9 +79,27 @@ async def check_status(callback: types.CallbackQuery):
     else:
         await callback.message.answer("ትኬት የለዎትም።")
 
+# --- Dummy Web Server for Render ---
+async def handle(request):
+    return web.Response(text="Bot is running!")
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/", handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    # Render የሚሰጠውን Port መጠቀም ወሳኝ ነው
+    port = int(os.environ.get("PORT", 10000))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
 async def main():
-    print("ቦቱ እየሰራ ነው...")
-    await dp.start_polling(bot)
+    print("ቦቱ እና የዌብ ሰርቨሩ እየነሱ ነው...")
+    # ሁለቱንም በአንድ ጊዜ ማስነሳት
+    await asyncio.gather(
+        dp.start_polling(bot),
+        start_web_server()
+    )
 
 if __name__ == "__main__":
     asyncio.run(main())
