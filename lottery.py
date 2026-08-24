@@ -110,6 +110,19 @@ async def draw_lottery(message: types.Message):
 
     await message.answer(f"🎯 **እጣ ማውጫ ዊል ዝግጁ ነው!**\n\nየጸደቁት ቁጥሮች፦ **{nums_string}**\n\nከታች ያለውን አዝራር በመጫን አሽከርክረው፦", reply_markup=keyboard)
 
+@dp.message(Command("reset"))
+async def reset_slots(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        await message.reply("ይህንን ትዕዛዝ መጠቀም የሚችሉት አድሚኖች ብቻ ናቸው ❌")
+        return
+
+    global slots
+    slots = {i: None for i in range(1, total_numbers + 1)}
+    save_slots()
+    
+    updated_text = generate_slots_text()
+    await message.reply(f"🔄 **የዕጣ ሰንጠረዡ ሙሉ በሙሉ ተዘግቷል/ተreset ተደርጓል!** አሁን ሁሉም ቁጥሮች ክፍት ናቸው።\n\n{updated_text}")
+
 @dp.message()
 async def book_slot_direct(message: types.Message):
     text = message.text.strip() if message.text else ""
@@ -136,21 +149,9 @@ async def book_slot_direct(message: types.Message):
         else:
             await message.reply(f"እባክዎ ከ 1 እስከ {total_numbers} ያሉትን ቁጥሮች ብቻ ይምረጡ።")
 
-# --- Flask ዌብ ሰርቨር እና ዊል (HTML) ማገናኛ ---
+# --- Flask ዌብ ሰርቨር ክፍል ---
 app = Flask(__name__)
-@dp.message(Command("reset"))
-async def reset_slots(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        await message.reply("ይህንን ትዕዛዝ መጠቀም የሚችሉት አድሚኖች ብቻ ናቸው ❌")
-        return
 
-    # ሁሉንም ቁጥሮች ወደ መጀመሪያው ሁኔታቸው (None) በመመለስ ባዶ ማድረግ
-    global slots
-    slots = {i: None for i in range(1, total_numbers + 1)}
-    save_slots()
-    
-    updated_text = generate_slots_text()
-    await message.reply(f"🔄 **የዕጣ ሰንጠረዡ ሙሉ በሙሉ ተظድቷል (Reset ተደርጓል)!** አሁን ሁሉም ቁጥሮች ክፍት ናቸው።\n\n{updated_text}")
 @app.route('/')
 def home():
     return render_template('wheel.html')
