@@ -4,29 +4,85 @@
     <meta charset="UTF-8">
     <title>የዕጣ ማውጫ ዊል</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f9; padding-top: 50px; }
-        h1 { color: #333; }
-        #wheel-container { margin: 20px auto; width: 300px; height: 300px; border-radius: 50%; border: 10px solid #333; position: relative; overflow: hidden; background: #ddd; transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); }
-        .sector { position: absolute; width: 50%; height: 50%; top: 50%; left: 50%; transform-origin: 0% 0%; text-align: center; font-weight: bold; padding-top: 20px; }
-        button { padding: 12px 25px; font-size: 18px; background: #ff4757; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f9; padding-top: 30px; }
+        h1 { color: #333; margin-bottom: 10px; }
+        
+        /* የዊሉ ዋና ማቀፊያ እና ቀስት (Pointer) */
+        .wheel-wrapper {
+            position: relative;
+            width: 450px;
+            height: 450px;
+            margin: 20px auto;
+        }
+        /* ከላይ የሚጠቁመው ቀስት */
+        .pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 30px solid #ff4757;
+            z-index: 10;
+        }
+        #wheel-container {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 10px solid #333;
+            position: relative;
+            overflow: hidden;
+            background: #ddd;
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+        }
+        .sector { 
+            position: absolute; 
+            width: 50%; 
+            height: 50%; 
+            top: 50%; 
+            left: 50%; 
+            transform-origin: 0% 0%; 
+            text-align: center; 
+            font-weight: bold; 
+            font-size: 14px;
+            padding-top: 15px; 
+        }
+        button { padding: 12px 25px; font-size: 18px; background: #ff4757; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 10px; }
         button:hover { background: #ff6b81; }
-        #result { margin-top: 20px; font-size: 24px; font-weight: bold; color: #2ed573; }
+        .btn-reset { background: #3742fa; }
+        .btn-reset:hover { background: #5352ed; }
+        
+        #result { margin-top: 20px; font-size: 20px; font-weight: bold; color: #2ed573; line-height: 1.6; }
+        #winners-list { margin-top: 15px; font-size: 18px; color: #333; text-align: center; display: inline-block; background: #fff; padding: 15px 30px; border-radius: 8px; box-shadow: 0px 2px 5px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
 
-    <h1>🎯 የዕጣ ማውጫ ዊል 🎡</h1>
-    <div id="wheel-container"></div>
+    <h1>🎯 የዕጣ ማውጫ ትልቅ ዊል 🎡</h1>
+    
+    <div class="wheel-wrapper">
+        <div class="pointer"></div>
+        <div id="wheel-container"></div>
+    </div>
+    
     <br>
     <button onclick="spinWheel()">ዊሉን አሽከርክር 🔄</button>
+    <button class="btn-reset" onclick="resetWinners()">ውጤቶችን አጽዳ 🔄</button>
+    
     <div id="result"></div>
+    <div id="winners-list">
+        <h3>📋 የአሸናፊዎች ዝርዝር:</h3>
+        <ul id="winners-ul" style="list-style-type: none; padding: 0; text-align: left;">
+            <li style="color: #888;">እስካሁን የወጣ አሸናፊ የለም</li>
+        </ul>
+    </div>
 
 <script>
-    // ከሊንኩ ላይ የቁጥሮቹን ዝርዝር መቀበል (URL Parameters)
     const urlParams = new URLSearchParams(window.location.search);
     const numbersParam = urlParams.get('numbers');
     
-    // ቁጥሮቹ ከመጡ በኮማ ከፋፍሎ ወደ አርሬ (Array) መቀየር፣ ካልመጡ ነባሪ ቁጥሮችን መጠቀም
     const numbers = numbersParam ? numbersParam.split(',') : [1, 2, 3, 4, 5];
 
     const container = document.getElementById('wheel-container');
@@ -43,6 +99,8 @@
     });
 
     let currentRotation = 0;
+    let winners = []; // የተመረጡ አሸናፊዎችን ለመያዝ
+
     function spinWheel() {
         const randomRotation = Math.floor(Math.random() * 3600) + 1800;
         currentRotation += randomRotation;
@@ -51,9 +109,38 @@
         document.getElementById("result").innerText = "ቁጥሮቹ በመሽከርከር ላይ ናቸው... ⏳";
 
         setTimeout(() => {
-            const winningIndex = Math.floor(Math.random() * numbers.length);
-            document.getElementById("result").innerText = `🎉 አሸናፊው ቁጥር፦ ${numbers[winningIndex]} 🏆`;
+            // የዊሉን ትክክለኛ ማቆሚያ በማስላት የትኛው ቁጥር በቀስቱ ስር እንደወደቀ መፈለግ
+            const normalizedRotation = currentRotation % 360;
+            const winningAngle = (360 - (normalizedRotation % 360)) % 360;
+            const winningIndex = Math.floor(winningAngle / sliceDegree);
+            const winningNum = numbers[winningIndex];
+
+            document.getElementById("result").innerText = `🎉 አሸናፊው ቁጥር፦ ${winningNum} 🏆`;
+
+            // በቅደም ተከተል (1ኛ፣ 2ኛ፣ 3ኛ...) መጨመር
+            if (!winners.includes(winningNum)) {
+                winners.push(winningNum);
+                updateWinnersList();
+            }
         }, 4000);
+    }
+
+    function updateWinnersList() {
+        const ul = document.getElementById("winners-ul");
+        ul.innerHTML = "";
+        winners.forEach((num, idx) => {
+            const li = document.createElement('li');
+            li.style.padding = "5px 0";
+            li.style.borderBottom = "1px solid #eee";
+            li.innerHTML = `<b>${idx + 1}ኛ ዕጣ:</b> ቁጥር ${num} 🎯`;
+            ul.appendChild(li);
+        });
+    }
+
+    function resetWinners() {
+        winners = [];
+        document.getElementById("winners-ul").innerHTML = '<li style="color: #888;">እስካሁን የወጣ አሸናፊ የለም</li>';
+        document.getElementById("result").innerText = "";
     }
 </script>
 </body>
