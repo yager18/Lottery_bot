@@ -1,16 +1,23 @@
-    asyncio.run(main())
+import os
 import logging
 import asyncio
-import random
-from aiogram import Bot, Dispatcher, types, F
+from flask import Flask, render_template
+from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from threading import Thread
 
-# 1. ማዋቀሪያዎች (Configuration)
-API_TOKEN = '8724280923:AAF-RmLnpfee08R3XgjYn7aRWO8uh3XbgZQ'  # የእርስዎ ቦት ቶከን
-ADMIN_ID = 5997569372  # የእርስዎ ትክክለኛ የቴሌግራም ID
+# 1. የ Flask ዌብ አፕሊኬሽን ማዋቀር
+app = Flask(__name__)
 
-# ሎግ ማዋቀር
+@app.route('/')
+def wheel_page():
+    return render_template('wheel.html')
+
+# 2. ማዋቀሪያዎች (Configuration)
+API_TOKEN = '8724280923:AAF-RmLnpfee08R3XgjYn7aRWO8uh3XbgZQ'
+ADMIN_ID = 5997569372
+
 logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=API_TOKEN)
@@ -42,7 +49,6 @@ async def show_slots(message: types.Message):
     text = generate_slots_text()
     await message.reply(text)
 
-# አድሚኑ ክፍያውን አረጋግጦ ሲያጸድቅ (በ /approve [ቁጥር] [ስም])
 @dp.message(Command("approve"))
 async def approve_payment(message: types.Message):
     if message.from_user.id != ADMIN_ID:
@@ -67,24 +73,22 @@ async def approve_payment(message: types.Message):
     else:
         await message.reply("እባክዎ ትክክለኛ ቁጥር ያስገቡ።")
 
-# 🌟 እጣ የማውጣት ትዕዛዝ (/draw) - በክብ ቅርጽ (Wheel) መሽከርከርን የሚያሳይ
 @dp.message(Command("draw"))
 async def draw_lottery(message: types.Message):
     if message.from_user.id != ADMIN_ID:
         await message.reply("ይህንን ትዕዛዝ መጠቀም የሚችሉት አድሚኖች ብቻ ናቸው ❌")
         return
 
-    # 1. በ ✅ የተዘጉትን ቁጥሮች ብቻ መለየት
     approved_nums = [str(num) for num, user in slots.items() if user is not None and "✅" in str(user)]
 
     if not approved_nums:
         await message.reply("እስካሁን የጸደቀ (✅) የተያዘ ቁጥር የለም። እጣ ማውጣት አይቻልም! ❌")
         return
 
-    # 2. ቁጥሮቹን በኮማ (,) በማቀናጀት ወደ ሊንክ መጨመር
     nums_string = ",".join(approved_nums)
-    # የራሳቸውን የ PythonAnywhere ዩዘር ስም እዚህ ጋር ያስገቡ (ለምሳሌ: bekele.pythonanywhere.com)
-    wheel_url = f"https://bekele.pythonanywhere.com/?numbers={nums_string}"
+    
+    # 🌟 አሁን የ Render ሊንክዎ እዚህ ገብቷል!
+    wheel_url = f"https://lottery-bot-1-a3hb.onrender.com/?numbers={nums_string}"
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -103,6 +107,36 @@ async def book_slot_direct(message: types.Message):
 
         if num in slots:
             if slots[num] is None:
+                user_name = message.from_user.first_name
+                slots[num] = f"{user_name} (ክፍያ በመጠበቅ ላይ ⏳)"
+
+                payment_info = (
+                    f"ቁጥር {num} ተይዟል! 📌\n\n"
+                    "እባክዎ ክፍያውን በሚከተለው አካውንት ይፈጽሙ፡\n"
+                    "• ንግድ ባንክ (CBE): 1000XXXXXXXXXX\n"
+                    "• ቴሌብር (Telebirr): 0925270516\n\n"
+                    "ክፍያውን ከፈጸሙ በኋላ የክፍያውን ማረጋገጫ (Screenshot) ለአድሚኑ ይላኩ።"
+                )
+                await message.reply(payment_info)
+            else:
+                await message.reply(f"ይቅርታ! ቁጥር {num} አስቀድሞ ተይዟል ወይም በመያዝ ላይ ነው ❌")
+        else:
+            await message.reply(f"እባክዎ ከ 1 እስከ {total_numbers} ያሉትን ቁጥሮች ብቻ ይምረጡ።")
+
+# 3. ቦቱን ከበስተጀርባ (Background Thread) ለማስኬድ
+def run_telegram_bot():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(dp.start_polling(bot))
+
+if __name__ == '__main__':
+    # ቦቱን በሰርቨሩ ውስጥ ማስጀመር
+    bot_thread = Thread(target=run_telegram_bot)
+    bot_thread.daemon = True
+    bot_thread.start()
+
+    # Flask ዌብ ሰርቨር ማስጀመር
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))            if slots[num] is None:
                 user_name = message.from_user.first_name
                 slots[num] = f"{user_name} (ክፍያ በመጠበቅ ላይ ⏳)"
 
