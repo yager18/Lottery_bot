@@ -78,7 +78,7 @@ async def draw_lottery(message: types.Message):
         return
 
     nums_string = ",".join(approved_nums)
-    wheel_url = f"https://lottery-bot-9-a3hb.onrender.com/?numbers={nums_string}"
+    wheel_url = f"https://lottery-bot-9.onrender.com/?numbers={nums_string}"
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
