@@ -1,2 +1,4 @@
+Flask
 aiogram
-aiohttp
+gunicorn
+requests
