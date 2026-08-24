@@ -7,14 +7,13 @@
         body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f9; padding-top: 30px; }
         h1 { color: #333; margin-bottom: 10px; }
         
-        /* የዊሉ ዋና ማቀፊያ እና ቀስት (Pointer) */
         .wheel-wrapper {
             position: relative;
             width: 450px;
             height: 450px;
             margin: 20px auto;
         }
-        /* ከላይ የሚጠቁመው ቀስት */
+        /* ከላይ በትክክል የሚያነጣጠረው ቀስት */
         .pointer {
             position: absolute;
             top: -15px;
@@ -51,6 +50,7 @@
         }
         button { padding: 12px 25px; font-size: 18px; background: #ff4757; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 10px; }
         button:hover { background: #ff6b81; }
+        button:disabled { background: #b2bec3; cursor: not-allowed; }
         .btn-reset { background: #3742fa; }
         .btn-reset:hover { background: #5352ed; }
         
@@ -68,8 +68,8 @@
     </div>
     
     <br>
-    <button onclick="spinWheel()">ዊሉን አሽከርክር 🔄</button>
-    <button class="btn-reset" onclick="resetWinners()">ውጤቶችን አጽዳ 🔄</button>
+    <button id="spin-btn" onclick="spinWheel()">ዊሉን አሽከርክር 🔄</button>
+    <button class="btn-reset" onclick="location.reload()">ዊሉን አድስ/Reset 🔄</button>
     
     <div id="result"></div>
     <div id="winners-list">
@@ -83,44 +83,76 @@
     const urlParams = new URLSearchParams(window.location.search);
     const numbersParam = urlParams.get('numbers');
     
-    const numbers = numbersParam ? numbersParam.split(',') : [1, 2, 3, 4, 5];
-
-    const container = document.getElementById('wheel-container');
-    const sliceDegree = 360 / numbers.length;
-
-    // ዊሉን በቁጥሮች መሙላት
-    numbers.forEach((num, index) => {
-        const sector = document.createElement('div');
-        sector.className = 'sector';
-        sector.style.transform = `rotate(${index * sliceDegree}deg) skewY(${90 - sliceDegree}deg)`;
-        sector.style.backgroundColor = `hsl(${index * (360 / numbers.length)}, 70%, 80%)`;
-        sector.innerHTML = `<span style="display:inline-block; transform: skewY(-${90 - sliceDegree}deg) rotate(${sliceDegree/2}deg);">${num}</span>`;
-        container.appendChild(sector);
-    });
+    // ከሊንኩ የመጡትን ቁጥሮች መቀበል
+    let numbers = numbersParam ? numbersParam.split(',') : [1, 2, 3, 4, 5];
 
     let currentRotation = 0;
-    let winners = []; // የተመረጡ አሸናፊዎችን ለመያዝ
+    let winners = [];
+
+    function drawWheel() {
+        const container = document.getElementById('wheel-container');
+        container.innerHTML = ""; // ቀደም ሲል የነበረውን ማጽዳት
+
+        if (numbers.length === 0) {
+            document.getElementById("result").innerText = "⚠️ ሁሉም ቁጥሮች ወጥተዋል!";
+            document.getElementById("spin-btn").disabled = true;
+            return;
+        }
+
+        const sliceDegree = 360 / numbers.length;
+
+        numbers.forEach((num, index) => {
+            const sector = document.createElement('div');
+            sector.className = 'sector';
+            sector.style.transform = `rotate(${index * sliceDegree}deg) skewY(${90 - sliceDegree}deg)`;
+            sector.style.backgroundColor = `hsl(${index * (360 / numbers.length)}, 70%, 80%)`;
+            sector.innerHTML = `<span style="display:inline-block; transform: skewY(-${90 - sliceDegree}deg) rotate(${sliceDegree/2}deg);">${num}</span>`;
+            container.appendChild(sector);
+        });
+    }
+
+    // የመጀመሪያውን ዊል መሳል
+    drawWheel();
 
     function spinWheel() {
-        const randomRotation = Math.floor(Math.random() * 3600) + 1800;
-        currentRotation += randomRotation;
-        container.style.transform = `rotate(${currentRotation}deg)`;
+        if (numbers.length === 0) return;
 
+        document.getElementById("spin-btn").disabled = true;
         document.getElementById("result").innerText = "ቁጥሮቹ በመሽከርከር ላይ ናቸው... ⏳";
 
-        setTimeout(() => {
-            // የዊሉን ትክክለኛ ማቆሚያ በማስላት የትኛው ቁጥር በቀስቱ ስር እንደወደቀ መፈለግ
-            const normalizedRotation = currentRotation % 360;
-            const winningAngle = (360 - (normalizedRotation % 360)) % 360;
-            const winningIndex = Math.floor(winningAngle / sliceDegree);
-            const winningNum = numbers[winningIndex];
+        const sliceDegree = 360 / numbers.length;
+        
+        // የዘፈቀደ ዙር እና ትክክለኛ ማቆሚያ ማስላት
+        const randomSpins = Math.floor(Math.random() * 5) + 5; // ከ 5 እስከ 9 ዙር እንዲዞር
+        const winningIndex = Math.floor(Math.random() * numbers.length);
+        
+        // ቀስቱ ከላይ (0 ዲግሪ) ስለሆነ ቁጥሩ በትክክል ቀስቱ ስር እንዲቆም የሚደረግ ስሌት
+        const targetAngle = 360 - (winningIndex * sliceDegree) - (sliceDegree / 2);
+        currentRotation = (currentRotation - (currentRotation % 360)) + (360 * randomSpins) + targetAngle;
 
+        const container = document.getElementById('wheel-container');
+        container.style.transform = `rotate(${currentRotation}deg)`;
+
+        setTimeout(() => {
+            const winningNum = numbers[winningIndex];
             document.getElementById("result").innerText = `🎉 አሸናፊው ቁጥር፦ ${winningNum} 🏆`;
 
-            // በቅደም ተከተል (1ኛ፣ 2ኛ፣ 3ኛ...) መጨመር
-            if (!winners.includes(winningNum)) {
-                winners.push(winningNum);
-                updateWinnersList();
+            // አሸናፊውን ወደ ዝርዝር መጨመር
+            winners.push(winningNum);
+            updateWinnersList();
+
+            // የወጣውን ቁጥር ከቦታው ማስወገድ (ድጋሚ እንዳይወጣ)
+            numbers.splice(winningIndex, 1);
+
+            // ቀስቱን አስተካክሎ የቀሩትን ቁጥሮች ማስተካከል
+            container.style.transition = 'none';
+            currentRotation = targetAngle;
+            container.style.transform = `rotate(${currentRotation}deg)`;
+            setTimeout(() => { container.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)'; }, 50);
+
+            drawWheel();
+            if (numbers.length > 0) {
+                document.getElementById("spin-btn").disabled = false;
             }
         }, 4000);
     }
@@ -135,12 +167,6 @@
             li.innerHTML = `<b>${idx + 1}ኛ ዕጣ:</b> ቁጥር ${num} 🎯`;
             ul.appendChild(li);
         });
-    }
-
-    function resetWinners() {
-        winners = [];
-        document.getElementById("winners-ul").innerHTML = '<li style="color: #888;">እስካሁን የወጣ አሸናፊ የለም</li>';
-        document.getElementById("result").innerText = "";
     }
 </script>
 </body>
