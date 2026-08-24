@@ -13,7 +13,6 @@
             height: 450px;
             margin: 20px auto;
         }
-        /* ከላይ በትክክል የሚያነጣጠረው ቀስት */
         .pointer {
             position: absolute;
             top: -15px;
@@ -81,17 +80,17 @@
 
 <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const numbersParam = urlParams.get('numbers');
+    let numbersParam = urlParams.get('numbers');
     
-    // ከሊንኩ የመጡትን ቁጥሮች መቀበል
-    let numbers = numbersParam ? numbersParam.split(',') : [1, 2, 3, 4, 5];
+    // ቁጥሮቹ ከሊንኩ ከመጡ በኮማ መክፈል፣ ካልመጡ ከ 1 እስከ 20 ያሉትን በነባሪ መውሰድ
+    let numbers = numbersParam ? numbersParam.split(',') : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
     let currentRotation = 0;
     let winners = [];
 
     function drawWheel() {
         const container = document.getElementById('wheel-container');
-        container.innerHTML = ""; // ቀደም ሲል የነበረውን ማጽዳት
+        container.innerHTML = ""; 
 
         if (numbers.length === 0) {
             document.getElementById("result").innerText = "⚠️ ሁሉም ቁጥሮች ወጥተዋል!";
@@ -111,7 +110,6 @@
         });
     }
 
-    // የመጀመሪያውን ዊል መሳል
     drawWheel();
 
     function spinWheel() {
@@ -121,12 +119,9 @@
         document.getElementById("result").innerText = "ቁጥሮቹ በመሽከርከር ላይ ናቸው... ⏳";
 
         const sliceDegree = 360 / numbers.length;
-        
-        // የዘፈቀደ ዙር እና ትክክለኛ ማቆሚያ ማስላት
-        const randomSpins = Math.floor(Math.random() * 5) + 5; // ከ 5 እስከ 9 ዙር እንዲዞር
+        const randomSpins = Math.floor(Math.random() * 5) + 5;
         const winningIndex = Math.floor(Math.random() * numbers.length);
         
-        // ቀስቱ ከላይ (0 ዲግሪ) ስለሆነ ቁጥሩ በትክክል ቀስቱ ስር እንዲቆም የሚደረግ ስሌት
         const targetAngle = 360 - (winningIndex * sliceDegree) - (sliceDegree / 2);
         currentRotation = (currentRotation - (currentRotation % 360)) + (360 * randomSpins) + targetAngle;
 
@@ -137,14 +132,11 @@
             const winningNum = numbers[winningIndex];
             document.getElementById("result").innerText = `🎉 አሸናፊው ቁጥር፦ ${winningNum} 🏆`;
 
-            // አሸናፊውን ወደ ዝርዝር መጨመር
             winners.push(winningNum);
             updateWinnersList();
 
-            // የወጣውን ቁጥር ከቦታው ማስወገድ (ድጋሚ እንዳይወጣ)
             numbers.splice(winningIndex, 1);
 
-            // ቀስቱን አስተካክሎ የቀሩትን ቁጥሮች ማስተካከል
             container.style.transition = 'none';
             currentRotation = targetAngle;
             container.style.transform = `rotate(${currentRotation}deg)`;
