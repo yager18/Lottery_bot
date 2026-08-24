@@ -1,105 +1,127 @@
-import sqlite3
-import random
+    asyncio.run(main())
+import logging
 import asyncio
-import os
+import random
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiohttp import web
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# --- Configuration ---
-BOT_TOKEN = '8724280923:AAF-RmLnpfee08R3XgjYn7aRWO8uh3XbgZQ'
-ADMIN_ID = 5997569372
-DB_PATH = 'lottery.db'
+# 1. ማዋቀሪያዎች (Configuration)
+API_TOKEN = '8724280923:AAF-RmLnpfee08R3XgjYn7aRWO8uh3XbgZQ'  # የእርስዎ ቦት ቶከን
+ADMIN_ID = 5997569372  # የእርስዎ ትክክለኛ የቴሌግራም ID
 
-bot = Bot(token=BOT_TOKEN)
+# ሎግ ማዋቀር
+logging.basicConfig(level=logging.INFO)
+
+bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
-# --- Database Setup ---
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS participants 
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                  user_id INTEGER, 
-                  full_name TEXT, 
-                  ticket_num INTEGER, 
-                  status TEXT)''')
-    conn.commit()
-    conn.close()
+total_numbers = 20
+slots = {i: None for i in range(1, total_numbers + 1)}
 
-init_db()
+def generate_slots_text():
+    text = "📌 **የዕጣ ቁጥሮች ዝርዝር**\n\n"
+    for num, user in slots.items():
+        if user:
+            text += f"{num} 👉 {user}\n"
+        else:
+            text += f"{num} 👉 \n"
+    return text
 
-# --- User Actions ---
 @dp.message(Command("start"))
-async def start(message: types.Message):
-    builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="🎟️ ትኬት ግዛ (የ1 ትኬት ዋጋ 50 ብር ነው)", callback_data="buy_ticket"))
-    builder.row(types.InlineKeyboardButton(text="📊 የኔ ትኬቶች", callback_data="my_status"))
-    await message.answer("እንኳን ወደ ያገርሰው የእጣ ትኬት መሸጫ ቦት በሰላም መጡ!", reply_markup=builder.as_markup())
+async def send_welcome(message: types.Message):
+    welcome_text = (
+        "ሰላም! እንኳን ወደ ዕጣ ማውጫ ቦት በደህና መጡ።\n\n"
+        "አሁን ያሉትን ቁጥሮች ለማየት /slots የሚለውን ይጫኑ።\n"
+        "ቁጥር ለመያዝ በቀጥታ የሚፈልጉትን **ቁጥር ብቻ** ይላኩ (ምሳሌ፦ 5)"
+    )
+    await message.reply(welcome_text)
 
-@dp.callback_query(F.data == "buy_ticket")
-async def buy(callback: types.CallbackQuery):
-    await callback.message.answer("💳 የንግድ ባንክ: ያገርሰው አዕምሮ: 1000501218212 \nቴሌብር: ያገርሰው: 0925270516 \n\nደረሰኝ ይላኩ።")
+@dp.message(Command("slots"))
+async def show_slots(message: types.Message):
+    text = generate_slots_text()
+    await message.reply(text)
 
-@dp.message(F.photo)
-async def forward_receipt(message: types.Message):
-    builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="✅ አጽድቅ", callback_data=f"ok_{message.from_user.id}"))
-    builder.row(types.InlineKeyboardButton(text="❌ ሰርዝ", callback_data=f"no_{message.from_user.id}"))
-    await bot.send_photo(ADMIN_ID, message.photo[-1].file_id, caption=f"አዲስ ደረሰኝ ከ: {message.from_user.full_name}", reply_markup=builder.as_markup())
-    await message.reply("ደረሰኝዎ ደርሷል!")
+# አድሚኑ ክፍያውን አረጋግጦ ሲያጸድቅ (በ /approve [ቁጥር] [ስም])
+@dp.message(Command("approve"))
+async def approve_payment(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        await message.reply("ይህንን ትዕዛዝ መጠቀም የሚችሉት አድሚኖች ብቻ ናቸው ❌")
+        return
 
-@dp.callback_query(F.data.startswith("ok_"))
-async def approve(callback: types.CallbackQuery):
-    try:
-        u_id = int(callback.data.split("_")[1])
-        ticket_num = random.randint(1000, 9999)
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute("INSERT INTO participants (user_id, full_name, ticket_num, status) VALUES (?, ?, ?, ?)", 
-                  (u_id, "ተሳታፊ", ticket_num, "Approved"))
-        conn.commit()
-        conn.close()
-        await bot.send_message(u_id, f"🎉 ተረጋግጧል! ቁጥርዎ: {ticket_num}")
-        await callback.message.edit_caption(caption=f"✅ ጸድቋል! ቁጥር: {ticket_num}")
-    except Exception as e:
-        await callback.answer(f"ስህተት: {e}")
+    parts = message.text.split(maxsplit=2)
+    if len(parts) < 3:
+        await message.reply("አጠቃቀም: /approve [ቁጥር] [የተጠቃሚ_ስም]\nምሳሌ: /approve 5 yaq")
+        return
 
-@dp.callback_query(F.data == "my_status")
-async def check_status(callback: types.CallbackQuery):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT ticket_num FROM participants WHERE user_id=? AND status='Approved'", (callback.from_user.id,))
-    results = c.fetchall()
-    conn.close()
-    if results:
-        tickets = ", ".join([str(r[0]) for r in results])
-        await callback.message.answer(f"🎫 ትኬቶችዎ፦ {tickets}")
+    num_str, user_name = parts[1], parts[2]
+
+    if num_str.isdigit():
+        num = int(num_str)
+        if num in slots:
+            slots[num] = f"{user_name} ✅"
+            updated_text = generate_slots_text()
+            await message.reply(f"ክፍያው ተረጋግጧል! ቁጥር {num} በይፋ ተዘግቷል። 🟢\n\n{updated_text}")
+        else:
+            await message.reply("የተሳሳተ ቁጥር ነው።")
     else:
-        await callback.message.answer("ትኬት የለዎትም።")
+        await message.reply("እባክዎ ትክክለኛ ቁጥር ያስገቡ።")
 
-# --- Dummy Web Server for Render ---
-async def handle(request):
-    return web.Response(text="Bot is running!")
+# 🌟 እጣ የማውጣት ትዕዛዝ (/draw) - በክብ ቅርጽ (Wheel) መሽከርከርን የሚያሳይ
+@dp.message(Command("draw"))
+async def draw_lottery(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        await message.reply("ይህንን ትዕዛዝ መጠቀም የሚችሉት አድሚኖች ብቻ ናቸው ❌")
+        return
 
-async def start_web_server():
-    app = web.Application()
-    app.router.add_get("/", handle)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    # Render የሚሰጠውን Port መጠቀም ወሳኝ ነው
-    port = int(os.environ.get("PORT", 10000))
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
+    # 1. በ ✅ የተዘጉትን ቁጥሮች ብቻ መለየት
+    approved_nums = [str(num) for num, user in slots.items() if user is not None and "✅" in str(user)]
 
-async def main():
-    print("ቦቱ እና የዌብ ሰርቨሩ እየነሱ ነው...")
-    # ሁለቱንም በአንድ ጊዜ ማስነሳት
-    await asyncio.gather(
-        dp.start_polling(bot),
-        start_web_server()
+    if not approved_nums:
+        await message.reply("እስካሁን የጸደቀ (✅) የተያዘ ቁጥር የለም። እጣ ማውጣት አይቻልም! ❌")
+        return
+
+    # 2. ቁጥሮቹን በኮማ (,) በማቀናጀት ወደ ሊንክ መጨመር
+    nums_string = ",".join(approved_nums)
+    # የራሳቸውን የ PythonAnywhere ዩዘር ስም እዚህ ጋር ያስገቡ (ለምሳሌ: bekele.pythonanywhere.com)
+    wheel_url = f"https://bekele.pythonanywhere.com/?numbers={nums_string}"
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🎡 ዊሉን በብሮውዘር ክፈትና አሽከርክር", url=wheel_url)]
+        ]
     )
 
-if __name__ == "__main__":
+    await message.answer(f"🎯 **እጣ ማውጫ ዊል ዝግጁ ነው!**\n\nየጸደቁት ቁጥሮች፦ **{nums_string}**\n\nከታች ያለውን አዝራር በመጫን አሽከርክረው፦", reply_markup=keyboard)
+
+@dp.message()
+async def book_slot_direct(message: types.Message):
+    text = message.text.strip() if message.text else ""
+
+    if text.isdigit():
+        num = int(text)
+
+        if num in slots:
+            if slots[num] is None:
+                user_name = message.from_user.first_name
+                slots[num] = f"{user_name} (ክፍያ በመጠበቅ ላይ ⏳)"
+
+                payment_info = (
+                    f"ቁጥር {num} ተይዟል! 📌\n\n"
+                    "እባክዎ ክፍያውን በሚከተለው አካውንት ይፈጽሙ፡\n"
+                    "• ንግድ ባንክ (CBE): 1000XXXXXXXXXX\n"
+                    "• ቴሌብር (Telebirr): 0925270516\n\n"
+                    "ክፍያውን ከፈጸሙ በኋላ የክፍያውን ማረጋገጫ (Screenshot) ለአድሚኑ ይላኩ። "
+                    "አድሚኑ ክፍያውን ሲያረጋግጥ ቁጥርዎ በይፋ ይጸድቃል (✅)!"
+                )
+                await message.reply(payment_info)
+            else:
+                await message.reply(f"ይቅርታ! ቁጥር {num} አስቀድሞ ተይዟል ወይም በመያዝ ላይ ነው ❌")
+        else:
+            await message.reply(f"እባክዎ ከ 1 እስከ {total_numbers} ያሉትን ቁጥሮች ብቻ ይምረጡ።")
+
+async def main():
+    await dp.start_polling(bot)
+
+if __name__ == '__main__':
     asyncio.run(main())
