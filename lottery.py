@@ -138,7 +138,19 @@ async def book_slot_direct(message: types.Message):
 
 # --- Flask ዌብ ሰርቨር እና ዊል (HTML) ማገናኛ ---
 app = Flask(__name__)
+@dp.message(Command("reset"))
+async def reset_slots(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        await message.reply("ይህንን ትዕዛዝ መጠቀም የሚችሉት አድሚኖች ብቻ ናቸው ❌")
+        return
 
+    # ሁሉንም ቁጥሮች ወደ መጀመሪያው ሁኔታቸው (None) በመመለስ ባዶ ማድረግ
+    global slots
+    slots = {i: None for i in range(1, total_numbers + 1)}
+    save_slots()
+    
+    updated_text = generate_slots_text()
+    await message.reply(f"🔄 **የዕጣ ሰንጠረዡ ሙሉ በሙሉ ተظድቷል (Reset ተደርጓል)!** አሁን ሁሉም ቁጥሮች ክፍት ናቸው።\n\n{updated_text}")
 @app.route('/')
 def home():
     return render_template('wheel.html')
