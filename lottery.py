@@ -1,5 +1,8 @@
 import logging
 import asyncio
+import os
+from flask import Flask
+import threading
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -75,7 +78,6 @@ async def draw_lottery(message: types.Message):
         return
 
     nums_string = ",".join(approved_nums)
-    # የ Render ዌብሳይት ሊንክዎ
     wheel_url = f"https://lottery-bot-1-a3hb.onrender.com/?numbers={nums_string}"
 
     keyboard = InlineKeyboardMarkup(
@@ -111,8 +113,21 @@ async def book_slot_direct(message: types.Message):
         else:
             await message.reply(f"እባክዎ ከ 1 እስከ {total_numbers} ያሉትን ቁጥሮች ብቻ ይምረጡ።")
 
+# --- Render ፖርት እንዲያገኝ የሚረዳ ትንሽ ዌብ ሰርቨር ---
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running perfectly!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+
 async def main():
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
+    # ዌብ ሰርቨሩን እና ቦቱን በአንድ ላይ ማስጀመር
+    threading.Thread(target=run_flask).start()
     asyncio.run(main())
