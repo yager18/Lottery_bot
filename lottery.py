@@ -1,6 +1,7 @@
 import logging
 import asyncio
 import os
+import json
 from flask import Flask
 import threading
 from aiogram import Bot, Dispatcher, types
@@ -16,11 +17,33 @@ bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
 total_numbers = 20
-slots = {i: None for i in range(1, total_numbers + 1)}
+DATA_FILE = "slots_data.json"
+
+# ቁጥሮቹን ከፋይል የመጫን ወይም የመፍጠር ተግባር
+def load_slots():
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                # ኪዎቹን ወደ ኢንቲጀር መለወጥ (JSON ኪዎችን ስትሪንግ ስለሚያደርጋቸው)
+                return {int(k): v for k, v in data.items()}
+        except Exception:
+            pass
+    return {i: None for i in range(1, total_numbers + 1)}
+
+def save_slots():
+    try:
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(slots, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        logging.error(f"Error saving slots: {e}")
+
+slots = load_slots()
 
 def generate_slots_text():
     text = "📌 **የዕጣ ቁጥሮች ዝርዝር**\n\n"
-    for num, user in slots.items():
+    for num in range(1, total_numbers + 1):
+        user = slots.get(num)
         if user:
             text += f"{num} 👉 {user}\n"
         else:
@@ -58,6 +81,7 @@ async def approve_payment(message: types.Message):
         num = int(num_str)
         if num in slots:
             slots[num] = f"{user_name} ✅"
+            save_slots()  # ለውጡን በፋይል ማከማቸት
             updated_text = generate_slots_text()
             await message.reply(f"ክፍያው ተረጋግጧል! ቁጥር {num} በይፋ ተዘግቷል። 🟢\n\n{updated_text}")
         else:
@@ -99,6 +123,7 @@ async def book_slot_direct(message: types.Message):
             if slots[num] is None:
                 user_name = message.from_user.first_name
                 slots[num] = f"{user_name} (ክፍያ በመጠበቅ ላይ ⏳)"
+                save_slots()  # ለውጡን በፋይል ማከማቸት
 
                 payment_info = (
                     f"ቁጥር {num} ተይዟል! 📌\n\n"
@@ -128,6 +153,5 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
-    # ዌብ ሰርቨሩን እና ቦቱን በአንድ ላይ ማስጀመር
     threading.Thread(target=run_flask).start()
     asyncio.run(main())
