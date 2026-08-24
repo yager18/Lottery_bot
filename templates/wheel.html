@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <title>የዕጣ ማውጫ ዊል</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f9; padding-top: 50px; }
+        h1 { color: #333; }
+        #wheel-container { margin: 20px auto; width: 300px; height: 300px; border-radius: 50%; border: 10px solid #333; position: relative; overflow: hidden; background: #ddd; transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); }
+        .sector { position: absolute; width: 50%; height: 50%; top: 50%; left: 50%; transform-origin: 0% 0%; text-align: center; font-weight: bold; padding-top: 20px; }
+        button { padding: 12px 25px; font-size: 18px; background: #ff4757; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #ff6b81; }
+        #result { margin-top: 20px; font-size: 24px; font-weight: bold; color: #2ed573; }
+    </style>
+</head>
+<body>
+
+    <h1>🎯 የዕጣ ማውጫ ዊል 🎡</h1>
+    <div id="wheel-container"></div>
+    <br>
+    <button onclick="spinWheel()">ዊሉን አሽከርክር 🔄</button>
+    <div id="result"></div>
+
+<script>
+    // ከሊንኩ ላይ የቁጥሮቹን ዝርዝር መቀበል (URL Parameters)
+    const urlParams = new URLSearchParams(window.location.search);
+    const numbersParam = urlParams.get('numbers');
+    
+    // ቁጥሮቹ ከመጡ በኮማ ከፋፍሎ ወደ አርሬ (Array) መቀየር፣ ካልመጡ ነባሪ ቁጥሮችን መጠቀም
+    const numbers = numbersParam ? numbersParam.split(',') : [1, 2, 3, 4, 5];
+
+    const container = document.getElementById('wheel-container');
+    const sliceDegree = 360 / numbers.length;
+
+    // ዊሉን በቁጥሮች መሙላት
+    numbers.forEach((num, index) => {
+        const sector = document.createElement('div');
+        sector.className = 'sector';
+        sector.style.transform = `rotate(${index * sliceDegree}deg) skewY(${90 - sliceDegree}deg)`;
+        sector.style.backgroundColor = `hsl(${index * (360 / numbers.length)}, 70%, 80%)`;
+        sector.innerHTML = `<span style="display:inline-block; transform: skewY(-${90 - sliceDegree}deg) rotate(${sliceDegree/2}deg);">${num}</span>`;
+        container.appendChild(sector);
+    });
+
+    let currentRotation = 0;
+    function spinWheel() {
+        const randomRotation = Math.floor(Math.random() * 3600) + 1800;
+        currentRotation += randomRotation;
+        container.style.transform = `rotate(${currentRotation}deg)`;
+
+        document.getElementById("result").innerText = "ቁጥሮቹ በመሽከርከር ላይ ናቸው... ⏳";
+
+        setTimeout(() => {
+            const winningIndex = Math.floor(Math.random() * numbers.length);
+            document.getElementById("result").innerText = `🎉 አሸናፊው ቁጥር፦ ${numbers[winningIndex]} 🏆`;
+        }, 4000);
+    }
+</script>
+</body>
+</html>
