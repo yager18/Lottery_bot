@@ -122,27 +122,30 @@ async def reset_slots(message: types.Message):
     
     updated_text = generate_slots_text()
     await message.reply(f"🔄 **የዕጣ ሰንጠረዡ ሙሉ በሙሉ ተዘግቷል/ተreset ተደርጓል!** አሁን ሁሉም ቁጥሮች ክፍት ናቸው።\n\n{updated_text}")
-
-# --- ተጠቃሚዎች የሚልኩትን ፎቶ (ደረሰኝ) ወደ አድሚን ማስተላለፊያ ክፍል ---
 @dp.message(lambda message: message.photo)
 async def handle_payment_receipt_photo(message: types.Message):
-    # አድሚኑ ራሱ ከላከ ችግር እንዳይፈጥር
     if message.from_user.id == ADMIN_ID:
         return
     
     user = message.from_user
-    user_info = f"📩 **አዲስ የክፍያ ማረጋገጫ (ደረሰኝ) ደርሷል!**\n\n" \
-                f"👤 ስም: {user.first_name}\n" \
-                f"🆔 ዩዘርናም: @{user.username if user.username else 'የለውም'}\n" \
-                f"ግለሰቡ የላከው የክፍያ ደረሰኝ ከታች ተያይዟል 👇"
+    # ፎቶው ሲላክ ከፎቶው ጋር የተጻፈው ጽሁፍ (Caption) ካለ የያዛቸውን ቁጥር እና ስልክ ቁጥር ይይዛል
+    caption_text = message.caption if message.caption else "ቁጥር አልተጻፈም"
 
-    # ፎቶውን ወደ አድሚን forward/send ማድረግ
+    user_info = (
+        f"📩 **አዲስ የክፍያ ደረሰኝ ደርሷል!**\n\n"
+        f"👤 ስም: {user.first_name}\n"
+        f"🆔 ዩዘርናም: @{user.username if user.username else 'የለውም'}\n"
+        f"🔢 የያዘው ቁጥር እና መረጃ: {caption_text}\n\n"
+        f"የክፍያ ደረሰኙ ከታች ተያይዟል 👇"
+    )
+
+    # ፎቶውን እና የጻፈውን መረጃ ወደ አድሚን መላክ
     await bot.send_message(ADMIN_ID, user_info)
     await bot.forward_message(chat_id=ADMIN_ID, from_chat_id=message.chat.id, message_id=message.message_id)
     
-    await message.reply("✅ የክፍያ ማረጋገጫዎ ለአድሚን ተልኳል! አድሚኑ ሲያረጋግጠው ቁጥርዎ ይጸድቃል (✅)።")
+    await message.reply("✅ ደረሰኝዎ እና መረጃዎ ለአድሚን ተልኳል! አድሚኑ ሲያረጋግጠው ቁጥርዎ ይጸድቃል (✅)።")
 
-# --- የተለመደው የቁጥር ማስተናገጃ ---
+# --- ቁጥር ለመያዝ ሲሞክሩ ---
 @dp.message()
 async def book_slot_direct(message: types.Message):
     text = message.text.strip() if message.text else ""
@@ -161,7 +164,7 @@ async def book_slot_direct(message: types.Message):
                     "እባክዎ ክፍያውን በሚከተለው አካውንት ይፈጽሙ፡\n"
                     "• ንግድ ባንክ (CBE): 1000XXXXXXXXXX\n"
                     "• ቴሌብር (Telebirr): 0925270516\n\n"
-                    "ክፍያውን ከፈጸሙ በኋላ የክፍያውን ማረጋገጫ (ስክሪንሾት) ፎቶ አድርገው በዚህ ቦት ይላኩ።"
+                    "⚠️ **ማስታወሻ:** ደረሰኙን ፎቶ ልኮ ሲልክ **ፎቶው ላይ** የያዘውን ቁጥር እና ስልክ ቁጥር (Caption አድርጎ) ጽፎ ይላክ!"
                 )
                 await message.reply(payment_info)
             else:
@@ -169,8 +172,7 @@ async def book_slot_direct(message: types.Message):
         else:
             await message.reply(f"እባክዎ ከ 1 እስከ {total_numbers} ያሉትን ቁጥሮች ብቻ ይምረጡ።")
     else:
-        # ቁጥርም కాని ፎቶም కాని ጽሁፍ ሲላክ
-        await message.reply("እባክዎ ቁጥር ለመያዝ የፈለጉትን **ቁጥር ብቻ** ይላኩ (ምሳሌ፦ 5) ወይም የክፍያ ደረሰኝዎን ፎቶ ይላኩ።")
+        await message.reply("እባክዎ ቁጥር ለመያዝ የፈለጉትን **ቁጥር ብቻ** ይላኩ (ምሳሌ፦ 5)።")
 
 # --- Flask ዌብ ሰርቨር ክፍል ---
 app = Flask(__name__)
