@@ -24,9 +24,10 @@ def load_slots():
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
+                # ቁጥሮቹ ሁልጊዜም እንደ Integer ቁጥር እንዲነበቡ ማድረግ
                 return {int(k): v for k, v in data.items()}
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"Error loading slots: {e}")
     return {i: None for i in range(1, total_numbers + 1)}
 
 def save_slots():
@@ -36,6 +37,7 @@ def save_slots():
     except Exception as e:
         logging.error(f"Error saving slots: {e}")
 
+# ሰንጠረዡን መጫን
 slots = load_slots()
 
 def generate_slots_text():
@@ -122,13 +124,13 @@ async def reset_slots(message: types.Message):
     
     updated_text = generate_slots_text()
     await message.reply(f"🔄 **የዕጣ ሰንጠረዡ ሙሉ በሙሉ ተዘግቷል/ተreset ተደርጓል!** አሁን ሁሉም ቁጥሮች ክፍት ናቸው።\n\n{updated_text}")
+
 @dp.message(lambda message: message.photo)
 async def handle_payment_receipt_photo(message: types.Message):
     if message.from_user.id == ADMIN_ID:
         return
     
     user = message.from_user
-    # ፎቶው ሲላክ ከፎቶው ጋር የተጻፈው ጽሁፍ (Caption) ካለ የያዛቸውን ቁጥር እና ስልክ ቁጥር ይይዛል
     caption_text = message.caption if message.caption else "ቁጥር አልተጻፈም"
 
     user_info = (
@@ -139,13 +141,11 @@ async def handle_payment_receipt_photo(message: types.Message):
         f"የክፍያ ደረሰኙ ከታች ተያይዟል 👇"
     )
 
-    # ፎቶውን እና የጻፈውን መረጃ ወደ አድሚን መላክ
     await bot.send_message(ADMIN_ID, user_info)
     await bot.forward_message(chat_id=ADMIN_ID, from_chat_id=message.chat.id, message_id=message.message_id)
     
     await message.reply("✅ ደረሰኝዎ እና መረጃዎ ለአድሚን ተልኳል! አድሚኑ ሲያረጋግጠው ቁጥርዎ ይጸድቃል (✅)።")
 
-# --- ቁጥር ለመያዝ ሲሞክሩ ---
 @dp.message()
 async def book_slot_direct(message: types.Message):
     text = message.text.strip() if message.text else ""
