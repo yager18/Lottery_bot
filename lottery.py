@@ -80,12 +80,12 @@ async def approve_payment(message: types.Message):
         if num in slots:
             slots[num] = f"{user_name} ✅"
             save_slots()
-            updated_text = generate_slots_text()
-            await message.reply(f"ክፍያው ተረጋግጧል! ቁጥር {num} በይፋ ተዘግቷል። 🟢\n\n{updated_text}")
+            # ዝርዝሩን ሳያሳይ አጭር እና ፕሮፌሽናል የሆነ ማረጋገጫ ብቻ እንዲልክ ተደርጓል
+            await message.reply(f"✅ ክፍያው በተሳካ ሁኔታ ተረጋግጧል! ቁጥር {num} ለአቶ/አ শ্রীমতি {user_name} ተዘግቷል። 🟢")
         else:
-            await message.reply("የተሳሳተ ቁጥር ነው።")
+            await message.reply("የተሳሳተ ቁጥር ነው። ❌")
     else:
-        await message.reply("እባክዎ ትክክለኛ ቁጥር ያስገቡ።")
+        await message.reply("እባክዎ ትክክለኛ ቁጥር ያስገቡ። ❌")
 
 @dp.message(Command("draw"))
 async def draw_lottery(message: types.Message):
