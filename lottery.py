@@ -2,7 +2,7 @@ import logging
 import asyncio
 import os
 import json
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 import threading
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -24,7 +24,6 @@ def load_slots():
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                # ቁጥሮቹ ሁልጊዜም እንደ Integer ቁጥር እንዲነበቡ ማድረግ
                 return {int(k): v for k, v in data.items()}
         except Exception as e:
             logging.error(f"Error loading slots: {e}")
@@ -37,7 +36,6 @@ def save_slots():
     except Exception as e:
         logging.error(f"Error saving slots: {e}")
 
-# ሰንጠረዡን መጫን
 slots = load_slots()
 
 def generate_slots_text():
