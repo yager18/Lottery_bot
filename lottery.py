@@ -166,7 +166,8 @@ async def book_slot_direct(message: types.Message):
                 )
                 await message.reply(payment_info)
             else:
-                await message.reply(f"ይቅርታ! ቁጥር {num} አስቀድሞ ተይዟል ❌")
+                # እዚህ ጋር በትክክል ተስተካክሏል 👇
+                await message.reply(f"ይህ እጣ ቁጥር ተይዟል ❌ እባክዎ ሌላ ቁጥር ይምረጡ።")
         else:
             await message.reply(f"እባክዎ ከ 1 እስከ {total_numbers} ያሉትን ቁጥሮች ብቻ ይምረጡ።")
     else:
