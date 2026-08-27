@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <title>የዕጣ ማውጫ ዊል</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f9; padding-top: 30px; }
+        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f9; padding-top: 20px; }
         h1 { color: #333; margin-bottom: 10px; }
         
         .wheel-wrapper {
             position: relative;
-            width: 450px;
-            height: 450px;
+            width: 400px;
+            height: 400px;
             margin: 20px auto;
         }
         /* ከላይ በትክክል የሚያነጣጠረው ቀስት */
@@ -24,29 +24,12 @@
             border-left: 15px solid transparent;
             border-right: 15px solid transparent;
             border-top: 30px solid #ff4757;
-            z-index: 10;
+            z-index: 100;
         }
-        #wheel-container {
-            width: 100%;
-            height: 100%;
+        #wheel-canvas {
             border-radius: 50%;
-            border: 10px solid #333;
-            position: relative;
-            overflow: hidden;
-            background: #ddd;
-            transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
-        }
-        .sector { 
-            position: absolute; 
-            width: 50%; 
-            height: 50%; 
-            top: 50%; 
-            left: 50%; 
-            transform-origin: 0% 0%; 
-            text-align: center; 
-            font-weight: bold; 
-            font-size: 16px;
-            padding-top: 15px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            background: #fff;
         }
         button { padding: 12px 25px; font-size: 18px; background: #ff4757; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 10px; }
         button:hover { background: #ff6b81; }
@@ -54,7 +37,7 @@
         .btn-reset { background: #3742fa; }
         .btn-reset:hover { background: #5352ed; }
         
-        #result { margin-top: 20px; font-size: 20px; font-weight: bold; color: #2ed573; line-height: 1.6; }
+        #result { margin-top: 15px; font-size: 20px; font-weight: bold; color: #2ed573; line-height: 1.6; }
         #winners-list { margin-top: 15px; font-size: 18px; color: #333; text-align: center; display: inline-block; background: #fff; padding: 15px 30px; border-radius: 8px; box-shadow: 0px 2px 5px rgba(0,0,0,0.1); }
     </style>
 </head>
@@ -64,7 +47,7 @@
     
     <div class="wheel-wrapper">
         <div class="pointer"></div>
-        <div id="wheel-container"></div>
+        <canvas id="wheel-canvas" width="400" height="400"></canvas>
     </div>
     
     <br>
@@ -82,78 +65,126 @@
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     let numbersParam = urlParams.get('numbers');
-    
-    let numbers = numbersParam ? numbersParam.split(',') : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    // ዋናውን የቁጥሮች ዝርዝር እና የወጡትን ቁጥሮች እንለያለን
+    let allNumbers = numbersParam ? numbersParam.split(',') : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,11,12,13,14,15,16,17,18,19,20];
+    let usedNumbers = []; // የወጡ ቁጥሮች የሚቀመጡበት
 
-    let currentRotation = 0;
+    const canvas = document.getElementById('wheel-canvas');
+    const ctx = canvas.getContext('2d');
+    const center = canvas.width / 2;
+    const radius = canvas.width / 2 - 10;
+
+    let currentAngle = 0; 
+    let isSpinning = false;
     let winners = [];
 
+    const colors = ['#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33F3', '#33FFF3', '#FFA533', '#A533FF', '#FF3366', '#66FF33'];
+
     function drawWheel() {
-        const container = document.getElementById('wheel-container');
-        container.innerHTML = ""; 
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const arc = (2 * Math.PI) / allNumbers.length;
 
-        if (numbers.length === 0) {
-            document.getElementById("result").innerText = "⚠️ ሁሉም ቁጥሮች ወጥተዋል!";
-            document.getElementById("spin-btn").disabled = true;
-            return;
-        }
+        allNumbers.forEach((num, i) => {
+            const angle = currentAngle + i * arc;
+            
+            ctx.beginPath();
+            // ቀደም ሲል የወጣ ቁጥር ከሆነ ግራጫ (Inactive) እናድለዋለን፣ ካልሆነ መደበኛቀለም
+            if (usedNumbers.includes(num)) {
+                ctx.fillStyle = "#dcdde1"; 
+            } else {
+                ctx.fillStyle = colors[i % colors.length];
+            }
 
-        const sliceDegree = 360 / numbers.length;
+            ctx.moveTo(center, center);
+            ctx.arc(center, center, radius, angle, angle + arc, false);
+            ctx.lineTo(center, center);
+            ctx.fill();
+            ctx.stroke();
 
-        numbers.forEach((num, index) => {
-            const sector = document.createElement('div');
-            sector.className = 'sector';
-            // እያንዳንዱን ቁጥር በሰዓት አቅጣጫ ማከፋፈል
-            sector.style.transform = `rotate(${index * sliceDegree}deg) skewY(${90 - sliceDegree}deg)`;
-            sector.style.backgroundColor = `hsl(${index * (360 / numbers.length)}, 70%, 80%)`;
-            sector.innerHTML = `<span style="display:inline-block; transform: skewY(-${90 - sliceDegree}deg) rotate(${sliceDegree/2}deg);">${num}</span>`;
-            container.appendChild(sector);
+            ctx.save();
+            ctx.translate(center, center);
+            ctx.rotate(angle + arc / 2);
+            ctx.textAlign = "right";
+            // የወጣው ቁጥር ግራጫ እንዲሆን ማድረግ
+            ctx.fillStyle = usedNumbers.includes(num) ? "#718093" : "#000";
+            ctx.font = "bold 18px Arial";
+            ctx.fillText(num, radius - 30, 6);
+            ctx.restore();
         });
     }
 
     drawWheel();
 
     function spinWheel() {
-        if (numbers.length === 0) return;
+        if (isSpinning) return;
 
+        // ያልወጡትን ቁጥሮች ብቻ ማጣራት (ለዕጣ እጩ የሆኑት)
+        let availableIndices = [];
+        allNumbers.forEach((num, index) => {
+            if (!usedNumbers.includes(num)) {
+                availableIndices.push(index);
+            }
+        });
+
+        if (availableIndices.length === 0) {
+            document.getElementById("result").innerText = "⚠️ ሁሉም ቁጥሮች ወጥተዋል!";
+            document.getElementById("spin-btn").disabled = true;
+            return;
+        }
+
+        isSpinning = true;
         document.getElementById("spin-btn").disabled = true;
         document.getElementById("result").innerText = "ቁጥሮቹ በመሽከርከር ላይ ናቸው... ⏳";
 
-        const sliceDegree = 360 / numbers.length;
-        const randomSpins = Math.floor(Math.random() * 5) + 5; // ከ 5 እስከ 9 ሙሉ ዙሮች
-        const winningIndex = Math.floor(Math.random() * numbers.length);
+        const arc = (2 * Math.PI) / allNumbers.length;
+        const randomSpins = Math.floor(Math.random() * 5) + 5; 
         
-        // ቀስቱ ከላይ (በ 0/360 ዲግሪ) ስላለ፣ በትክክል በቀስቱ ስር የሚቆመውን አንግል በትክክል ማስላት
-        const exactDegreeForIndex = winningIndex * sliceDegree;
-        const targetAngle = 360 - exactDegreeForIndex - (sliceDegree / 2);
+        // ከቀሩት ያልወጡ ቁጥሮች መካከል ብቻ በዘፈቀደ መምረጥ
+        const randomIndex = Math.floor(Math.random() * availableIndices.length);
+        const winningIndex = availableIndices[randomIndex];
         
-        currentRotation = currentRotation + (360 * randomSpins) + (targetAngle - (currentRotation % 360));
+        const targetAngle = currentAngle + (randomSpins * 2 * Math.PI) + (1.5 * Math.PI - (currentAngle + winningIndex * arc + arc / 2));
+        
+        const startAngle = currentAngle;
+        const distance = targetAngle - startAngle;
+        const duration = 4000; 
+        let startTime = null;
 
-        const container = document.getElementById('wheel-container');
-        container.style.transform = `rotate(${currentRotation}deg)`;
-
-        setTimeout(() => {
-            const winningNum = numbers[winningIndex];
-            document.getElementById("result").innerText = `🎉 አሸናፊው ቁጥር፦ ${winningNum} 🏆`;
-
-            winners.push(winningNum);
-            updateWinnersList();
-
-            // የወጣውን ቁጥር ከዝርዝር ውስጥ መሰረዝ (ድጋሚ እንዳይወጣ)
-            numbers.splice(winningIndex, 1);
-
-            drawWheel();
+        function animate(currentTime) {
+            if (!startTime) startTime = currentTime;
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
             
-            // የዊሉን ትክክለኛ ማዕዘን ያለ ሽክርክሪት ማስቀመጥ
-            container.style.transition = 'none';
-            currentRotation = targetAngle;
-            container.style.transform = `rotate(${currentRotation}deg)`;
-            setTimeout(() => { container.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)'; }, 50);
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            
+            currentAngle = startAngle + distance * easeOut;
+            drawWheel();
 
-            if (numbers.length > 0) {
-                document.getElementById("spin-btn").disabled = false;
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                currentAngle = targetAngle % (2 * Math.PI);
+                isSpinning = false;
+                
+                const winningNum = allNumbers[winningIndex];
+                document.getElementById("result").innerText = `🎉 አሸናፊው ቁጥር፦ ${winningNum} 🏆`;
+
+                winners.push(winningNum);
+                updateWinnersList();
+
+                // ቁጥሩን ወደ ወጣ ቁጥሮች ዝርዝር በመጨመር ዊሉ ላይ እንዲቀመጥ ግን ዳግመኛ እንዳይመረጥ እናደርጋለን
+                usedNumbers.push(winningNum);
+                drawWheel();
+
+                if (usedNumbers.length < allNumbers.length) {
+                    document.getElementById("spin-btn").disabled = false;
+                } else {
+                    document.getElementById("spin-btn").disabled = true;
+                }
             }
-        }, 4000);
+        }
+
+        requestAnimationFrame(animate);
     }
 
     function updateWinnersList() {
