@@ -81,7 +81,7 @@ async def approve_payment(message: types.Message):
             slots[num] = f"{user_name} ✅"
             save_slots()
             # ዝርዝሩን ሳያሳይ አጭር እና ፕሮፌሽናል የሆነ ማረጋገጫ ብቻ እንዲልክ ተደርጓል
-            await message.reply(f"✅ ክፍያው በተሳካ ሁኔታ ተረጋግጧል! ቁጥር {num} ለአቶ/አ শ্রীমতি {user_name} ተዘግቷል። 🟢")
+            await message.reply(f"✅ ክፍያው በተሳካ ሁኔታ ተረጋግጧል! ቁጥር {num} ለ{user_name} ተዘግቷል። 🟢")
         else:
             await message.reply("የተሳሳተ ቁጥር ነው። ❌")
     else:
@@ -108,7 +108,7 @@ async def draw_lottery(message: types.Message):
         ]
     )
 
-    await message.answer(f"🎯 **እጣ ማውጫ ዊል ዝግጁ ነው!**\n\nየጸደቁት ቁጥሮች፦ **{nums_string}**\n\nከታች ያለውን አዝራር በመጫን አሽከርክረው፦", reply_markup=keyboard)
+    await message.answer(f"🎯 **እጣ ማውጫው ዝግጁ ነው!**\n\nየጸደቁት ቁጥሮች፦ **{nums_string}**\n\nከታች ያለውን አዝራር በመጫን አሽከርክረው፦", reply_markup=keyboard)
 
 @dp.message(Command("reset"))
 async def reset_slots(message: types.Message):
@@ -121,7 +121,7 @@ async def reset_slots(message: types.Message):
     save_slots()
     
     updated_text = generate_slots_text()
-    await message.reply(f"🔄 **የዕጣ ሰንጠረዡ ሙሉ በሙሉ ተዘግቷል/ተreset ተደርጓል!** አሁን ሁሉም ቁጥሮች ክፍት ናቸው።\n\n{updated_text}")
+    await message.reply(f"🔄 **የዕጣ ሰንጠረዡ ሙሉ በሙሉ ተዘግቷል/reset ተደርጓል!** አሁን ሁሉም ቁጥሮች ያልተያዙ ናቸው።\n\n{updated_text}")
 
 @dp.message(lambda message: message.photo)
 async def handle_payment_receipt_photo(message: types.Message):
