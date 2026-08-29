@@ -135,7 +135,7 @@ async def handle_payment_receipt_photo(message: types.Message):
         f"📩 **አዲስ የክፍያ ደረሰኝ ደርሷል!**\n\n"
         f"👤 ስም: {user.first_name}\n"
         f"🆔 ዩዘርናም: @{user.username if user.username else 'የለውም'}\n"
-        f"🔢 የያዘው ቁጥር እና መረጃ: {caption_text}\n\n"
+        f"🔢 የመረጡት እጣ ቁጥር እና ስ.ቁ: {caption_text}\n\n"
         f"የክፍያ ደረሰኙ ከታች ተያይዟል 👇"
     )
 
@@ -160,9 +160,9 @@ async def book_slot_direct(message: types.Message):
                 payment_info = (
                     f"ቁጥር {num} ተይዟል! 📌\n\n"
                     "እባክዎ ክፍያውን በሚከተለው አካውንት ይፈጽሙ፡\n"
-                    "• ንግድ ባንክ (CBE): 1000XXXXXXXXXX\n"
+                    "• ንግድ ባንክ (CBE): 1000501218212\n"
                     "• ቴሌብር (Telebirr): 0925270516\n\n"
-                    "⚠️ **ማስታወሻ:** ደረሰኙን ፎቶ ልኮ ሲልክ **ፎቶው ላይ** የያዘውን ቁጥር እና ስልክ ቁጥር (Caption አድርጎ) ጽፎ ይላክ!"
+                    "⚠️ **ማስታወሻ:** የደረሰኙን ፎቶ፣የያዙትን እጣ ቁጥር እና ስ.ቁ ይላኩ!"
                 )
                 await message.reply(payment_info)
             else:
