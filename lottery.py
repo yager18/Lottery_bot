@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
-total_numbers = 20
+total_numbers = 25
 DATA_FILE = "slots_data.json"
 
 def load_slots():
